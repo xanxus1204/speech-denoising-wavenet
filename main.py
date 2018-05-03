@@ -10,6 +10,9 @@ import models
 import datasets
 import util
 import denoise
+import json
+
+
 
 
 def set_system_settings():
@@ -40,6 +43,7 @@ def get_command_line_arguments():
     parser.add_option('--noisy_input_path', dest='noisy_input_path')
     parser.add_option('--clean_input_path', dest='clean_input_path')
     parser.add_option('--target_field_length', dest='target_field_length')
+    parser.add_option('--debug', dest='debug')
 
 
     (options, args) = parser.parse_args()
@@ -71,6 +75,10 @@ def training(config, cla):
     # Instantiate Model
     model = models.DenoisingWavenet(config, load_checkpoint=cla.load_checkpoint, print_model_summary=cla.print_model_summary)
     dataset = get_dataset(config, model)
+    speaker_map_path = config['training']['path']
+    speaker_map_path = os.path.join(speaker_map_path,'speaker_mapping.json')
+    with open(speaker_map_path,'w') as spk_jsonf:
+        json.dump(dataset.speaker_mapping,spk_jsonf)
 
     num_train_samples = config['training']['num_train_samples']
     num_test_samples = config['training']['num_test_samples']
@@ -158,7 +166,12 @@ def main():
     set_system_settings()
     cla = get_command_line_arguments()
     config = load_config(cla.config)
-
+    if bool(cla.debug) == True:
+        # debug
+        import sys
+        sys.path.append('/home/kabashima/pycharm_debug/pycharm-debug.egg')
+        import pydevd
+        pydevd.settrace('172.19.167.1', port=12345, stdoutToServer=True, stderrToServer=True)
     if cla.mode == 'training':
         training(config, cla)
     elif cla.mode == 'inference':
